@@ -2,6 +2,7 @@ import os
 import progressbar
 import requests
 import random
+import json
 from . import darknet
 from . import load_image
 
@@ -59,7 +60,8 @@ def upload_appearances(frame_paths, labels, creator_id):
         'creator_id': creator_id,
         'label_appearances': all_apps
     }
-    r = requests.post(url=os.path.join(PLATFORM_URL, 'label_appearances'), data=data)
+    headers = {'content-type': 'application/json'}
+    r = requests.post(url=os.path.join(PLATFORM_URL, 'label_appearances/'), data=json.dumps(data), headers=headers)
     if r.json()['success']:
         print('Successfully uploaded {} appearances'.format(len(all_apps)))
 

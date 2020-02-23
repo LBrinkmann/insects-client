@@ -8,6 +8,7 @@ def transform_box(bbox_xmax, bbox_xmin, bbox_ymax, bbox_ymin, **_):
     height = (bbox_ymax - bbox_ymin)
     return center_x, center_y, width, height
 
+
 def back_transform_box(x, y, w, h):
     bbox_xmin = x - w / 2
     bbox_xmax = x + w / 2
@@ -86,7 +87,8 @@ def get_appearances(image_path):
     with open(txt_path, 'r') as f:
         for line in f.readlines():
             label_id, x, y, w, h = line.split(' ')
-            bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax = back_transform_box(x, y, w, h)
+            bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax = back_transform_box(
+                float(x), float(y), float(w), float(h))
             apps.append({
                 'label_id': label_id,
                 'bbox_xmin': bbox_xmin,
