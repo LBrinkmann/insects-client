@@ -5,10 +5,12 @@ import random
 from . import darknet
 from . import load_image
 
-def get_collection(collection_id):
+
+def get_collection(collection_id, with_appearances_only=False):
+    with_appearances_only_str = 'true' if with_appearances_only else 'false'
     PLATFORM_URL = os.environ.get('INSECTS_PLATFORM_URL', 'http://0.0.0.0:5000/')
     path = os.path.join(PLATFORM_URL, 'dataset', str(collection_id))
-    r = requests.get(path)
+    r = requests.get(path, params={'with_appearances_only': with_appearances_only_str})
     return r.json()['collection']
 
 
@@ -32,8 +34,8 @@ def parse_frames(frames, label_map, parser, data_dir='data/images'):
     return paths
 
 
-def import_collection(collection_id, data_dir, export_format='darknet'):
-    frames = get_collection(collection_id)
+def import_collection(collection_id, data_dir, with_appearances_only=False, export_format='darknet'):
+    frames = get_collection(collection_id, with_appearances_only)
     labels = get_all_labels(frames)
     label_map = {lid['id']: i for i, lid in enumerate(labels)}
     if export_format == 'darknet':
