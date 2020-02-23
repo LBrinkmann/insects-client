@@ -8,6 +8,14 @@ def transform_box(bbox_xmax, bbox_xmin, bbox_ymax, bbox_ymin, **_):
     height = (bbox_ymax - bbox_ymin)
     return center_x, center_y, width, height
 
+def back_transform_box(x, y, w, h):
+    bbox_xmin = x - w / 2
+    bbox_xmax = x + w / 2
+    bbox_ymin = y - h / 2
+    bbox_ymax = y + h / 2
+    return bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax
+
+
 
 def parse(*, label_map, appearances, local_path, **_):
     folder, basename = os.path.split(local_path)
@@ -54,3 +62,36 @@ def create_meta(labels, train_paths, test_paths, meta_path, temp_path):
         'backup': temp_path
     }
     return create_data(data, meta_path)
+
+
+
+def parse_txt(*, label_map, appearances, local_path, **_):
+    folder, basename = os.path.split(local_path)
+    txt_basename = os.path.splitext(basename)[0] + '.txt'
+    txt_fullpath = os.path.join(folder, txt_basename)
+    with open(txt_fullpath, 'w') as f:
+        for appearance in appearances:
+            for appearance_labels in appearance['appearance_labels']:
+                f.write('{} {} {} {} {}\n'.format(
+                    label_map[appearance_labels['label']['id']],
+                    *transform_box(**appearance)
+                ))
+
+
+def get_appearances(image_path):
+    folder, basename = os.path.split(image_path)
+    txt_basename = os.path.splitext(basename)[0] + '.txt'
+    txt_path = os.path.join(folder, txt_basename)
+    apps = []
+    with open(txt_path, 'r') as f:
+        for line in f.readlines():
+            label_id, x, y, w, h = line.split(' ')
+            bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax = back_transform_box(x, y, w, h)
+            apps.append({
+                'label_id': label_id,
+                'bbox_xmin': bbox_xmin,
+                'bbox_xmax': bbox_xmax,
+                'bbox_ymin': bbox_ymin,
+                'bbox_ymax': bbox_ymax
+            })
+    return apps

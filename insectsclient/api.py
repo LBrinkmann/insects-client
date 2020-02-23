@@ -12,7 +12,6 @@ PLATFORM_URL = os.environ.get('INSECTS_PLATFORM_URL', 'http://0.0.0.0:5000/')
 # DATA_DIR = os.environ.get('INSECTS_DATA_DIR', 'data')
 
 
-
 def get_collection(collection_id):
     path = os.path.join(PLATFORM_URL, 'dataset', str(collection_id))
     r = requests.get(path)
@@ -35,31 +34,50 @@ def parse_frames(frames, label_map, parser, data_dir='data/images'):
         # im = Image.open(local_path)
         # width, height = im.size
         parser(**frame, label_map=label_map, local_path=local_path)
-        paths.append(local_path)
+        paths.append({'path': local_path, 'id': frame['id']})
     return paths
 
 
-def import_collection(collection_id, export_format='darknet'):
+def import_collection(collection_id, data_dir, export_format='darknet'):
     frames = get_collection(collection_id)
     labels = get_all_labels(frames)
     label_map = {lid['id']: i for i, lid in enumerate(labels)}
     if export_format == 'darknet':
-        frame_paths = parse_frames(frames, label_map, darknet.parse)
+        frame_paths = parse_frames(frames, label_map, darknet.parse, data_dir)
     else:
         raise NotImplementedError('currently only darknet is supported')
     return labels, frame_paths
 
 
-def create_file_list(file_list, path):
-    path = darknet.create_file_list(file_list, path)
+def upload_appearances(frame_paths, labels, creator_id):
+    all_apps = []
+    for frame in frame_paths:
+        try:
+            apps = darknet.get_appearances(frame['path'])
+            apps = [{**a, 'label_id': labels[int(a['label_id'])]['id'], 'frame_id': frame['id']} for a in apps]
+            all_apps.extend(apps)
+    data = {
+        'creator_id': creator_id,
+        'label_appearances': all_apps
+    }
+    print(data)
+    r = requests.post(url=os.path.join(PLATFORM_URL, 'label_appearances'), data=data)
+    if r.json()['success']:
+        print('Successfully uploaded {} appearances'.format(len(all_apps)))
+
+
+def create_file_list(frame_paths, path):
+    _frame_paths = [fp['path'] for fp in frame_paths]
+    path = darknet.create_file_list(_frame_paths, path)
     return path
 
 
 def create_train_obj(labels, frame_paths, train_fraction=0.8, data_dir='data/meta', temp_dir='data/temp'):
-    random.shuffle(frame_paths)
-    n_train = int(len(frame_paths)*train_fraction)
-    train_paths = frame_paths[:n_train]
-    test_paths = frame_paths[n_train:]
+    _frame_paths = [fp['path'] for fp in frame_paths]
+    random.shuffle(_frame_paths)
+    n_train = int(len(_frame_paths)*train_fraction)
+    train_paths = _frame_paths[:n_train]
+    test_paths = _frame_paths[n_train:]
 
     return darknet.create_meta(
         labels, train_paths, test_paths, data_dir, temp_dir)
