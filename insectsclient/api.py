@@ -5,14 +5,8 @@ import random
 from . import darknet
 from . import load_image
 
-
-# from PIL import Image
-
-PLATFORM_URL = os.environ.get('INSECTS_PLATFORM_URL', 'http://0.0.0.0:5000/')
-# DATA_DIR = os.environ.get('INSECTS_DATA_DIR', 'data')
-
-
 def get_collection(collection_id):
+    PLATFORM_URL = os.environ.get('INSECTS_PLATFORM_URL', 'http://0.0.0.0:5000/')
     path = os.path.join(PLATFORM_URL, 'dataset', str(collection_id))
     r = requests.get(path)
     return r.json()['collection']
@@ -50,17 +44,19 @@ def import_collection(collection_id, data_dir, export_format='darknet'):
 
 
 def upload_appearances(frame_paths, labels, creator_id):
+    PLATFORM_URL = os.environ.get('INSECTS_PLATFORM_URL', 'http://0.0.0.0:5000/')
     all_apps = []
     for frame in frame_paths:
         try:
             apps = darknet.get_appearances(frame['path'])
             apps = [{**a, 'label_id': labels[int(a['label_id'])]['id'], 'frame_id': frame['id']} for a in apps]
             all_apps.extend(apps)
+        except:
+            pass
     data = {
         'creator_id': creator_id,
         'label_appearances': all_apps
     }
-    print(data)
     r = requests.post(url=os.path.join(PLATFORM_URL, 'label_appearances'), data=data)
     if r.json()['success']:
         print('Successfully uploaded {} appearances'.format(len(all_apps)))
@@ -81,13 +77,3 @@ def create_train_obj(labels, frame_paths, train_fraction=0.8, data_dir='data/met
 
     return darknet.create_meta(
         labels, train_paths, test_paths, data_dir, temp_dir)
-
-
-
-
-
-
-
-
-
-
