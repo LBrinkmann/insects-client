@@ -46,6 +46,18 @@ def import_collection(collection_id, data_dir, with_appearances_only=False, expo
     return labels, frame_paths
 
 
+def import_collections(collection_ids, data_dir, with_appearances_only=False, export_format='darknet'):
+    frames = [f for collection_id in collection_ids for f in get_collection(collection_id, with_appearances_only)]
+    labels = get_all_labels(frames)
+    label_map = {lid['id']: i for i, lid in enumerate(labels)}
+    if export_format == 'darknet':
+        frame_paths = parse_frames(frames, label_map, darknet.parse, data_dir)
+    else:
+        raise NotImplementedError('currently only darknet is supported')
+    return labels, frame_paths
+
+
+
 def upload_appearances(frame_paths, labels, creator_id):
     PLATFORM_URL = os.environ.get('INSECTS_PLATFORM_URL', 'http://0.0.0.0:5000/')
     all_apps = []
